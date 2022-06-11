@@ -30,6 +30,7 @@ public class WebSocketsConnectLocal extends AsyncTask<Void, Void, StompClient> {
             mStompClient = Stomp.over(Stomp.ConnectionProvider.OKHTTP, "ws://192.168.1.9:8050/example-endpoint/websocket");
             mStompClient.connect();
 
+
             return mStompClient;
         } catch (Exception e) {
             e.printStackTrace();

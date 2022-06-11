@@ -80,7 +80,8 @@ public class WebSocketsConnect extends AsyncTask<String, Void, String> {
             mainActivity = (MainActivity) context;
             TextView textView = (TextView)mainActivity.findViewById(R.id.textView);
             textView.setText(""+aBoolean);
-            Log.d(TAG, "json result "+aBoolean);
+            Log.d(TAG, "" +
+                    " result "+aBoolean);
         }
 
         @Override

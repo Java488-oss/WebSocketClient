@@ -57,6 +57,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 try {
+
                     mStompClient.get().send("/topic/hello-msg-mapping", String.valueOf(textSend())).subscribe();
                     EditText etText = findViewById(R.id.etText);
                     EditText etName = findViewById(R.id.etName);
