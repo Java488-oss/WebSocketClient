@@ -51,7 +51,6 @@ public class MainActivity extends AppCompatActivity {
                 if(str[0].equals("false")) {
 
                     runOnUiThread(new Runnable(){
-
                         @Override
                         public void run(){
                             Toast.makeText(MainActivity.this, "Вы ввели не коректные данные",Toast.LENGTH_LONG).show();
