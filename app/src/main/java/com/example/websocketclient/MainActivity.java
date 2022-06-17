@@ -2,21 +2,18 @@ package com.example.websocketclient;
 
 import static android.content.ContentValues.TAG;
 
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Handler;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.TextView;
 import android.widget.Toast;
 
-import org.json.JSONArray;
+import androidx.appcompat.app.AppCompatActivity;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -42,89 +39,79 @@ public class MainActivity extends AppCompatActivity {
         AsyncTask<Void, Void, StompClient> mStompClient = new WebSocketsConnectLocal(MainActivity.this).execute();
 
         try {
-            mStompClient.get().topic("/topic/greetings").subscribe();
+//            mStompClient.get().topic("/user/queue/updates").subscribe();
+//            Log.d(TAG, "Stomp " + mStompClient.get().getTopicId("/user/queue/updates"));
 
-            final String[] str = new String[1];
-            //получение сообщения с сервера на клиет
-            mStompClient.get().topic("/topic/greetings").subscribe(topicMessage -> {
-                str[0] =topicMessage.getPayload();
-                if(str[0].equals("false")) {
 
-                    runOnUiThread(new Runnable(){
-                        @Override
-                        public void run(){
-                            Toast.makeText(MainActivity.this, "Вы ввели не коректные данные",Toast.LENGTH_LONG).show();
-                        }
-                    });
+            ////////////////////////////////////////////////////////////////////////////////////////
 
-                }else {
-                    Intent myIntent = new Intent(MainActivity.this, FindUser.class);
-                    startActivity(myIntent);
+
+            try {
+                final String[] str = new String[1];
+                //получение сообщения с сервера на клиет
+                mStompClient.get().topic("/user/11/queue/updates").subscribe(topicMessage -> {
+                    str[0] = topicMessage.getPayload();
+
+                    Log.d(TAG, "Stomp1 " + str[0]);
+
+                    if (str[0].equals("false")) {
+
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                Toast.makeText(MainActivity.this, "Вы ввели не коректные данные", Toast.LENGTH_LONG).show();
+                            }
+                        });
+                    } else {
+                        Intent myIntent = new Intent(MainActivity.this, FindUser.class);
+                        startActivity(myIntent);
+                    }
+                });
+            } catch (ExecutionException | InterruptedException e) {
+                e.printStackTrace();
+            }
+
+
+            //////////////////////////////////////////////////////////////////////////////////////
+
+
+            btnSend.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    try {
+                        mStompClient.get().send("/spring-security-mvc-socket/hello-msg-mapping", String.valueOf(textSend())).subscribe();
+                        EditText etText = findViewById(R.id.etText);
+                        EditText etName = findViewById(R.id.etName);
+                        etText.getText().clear();
+                        etName.getText().clear();
+                    } catch (ExecutionException | InterruptedException e) {
+                        e.printStackTrace();
+                    }
                 }
             });
 
 
-        } catch (ExecutionException | InterruptedException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
-
-
-        btnSend.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                try {
-
-//                    mStompClient.get().send("/topic/hello-msg-mapping", String.valueOf(textSend())).subscribe();
-                    mStompClient.get().send("/topic/hello-msg-mapping", String.valueOf(textSend())).subscribe();
-//                    EditText etText = findViewById(R.id.etText);
-//                    EditText etName = findViewById(R.id.etName);
-//                    etText.getText().clear();
-//                    etName.getText().clear();
-                } catch (ExecutionException | InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-        btnRegister.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                try{
-                    mStompClient.get().send("/topic/register", String.valueOf(textSend())).subscribe();
-                    EditText etText = findViewById(R.id.etText);
-                    EditText etName = findViewById(R.id.etName);
-                    etText.getText().clear();
-                    etName.getText().clear();
-                } catch (ExecutionException | InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
 
         ///////////////////////////////////////////////////////////////////
     }
 
-    private JSONObject textSend(){
-        EditText etText = findViewById(R.id.etText);
-        EditText etName = findViewById(R.id.etName);
-        JSONObject student1 = new JSONObject();
+    private JSONObject textSend() {
         try {
+            EditText etText = findViewById(R.id.etText);
+            EditText etName = findViewById(R.id.etName);
+            JSONObject student1 = new JSONObject();
+
             student1.put("user", etName.getText());
             student1.put("pass", etText.getText());
 
-            JSONArray jsonArray = new JSONArray();
-
-            jsonArray.put(student1);
-
-            JSONObject jsonObject = new JSONObject();
-
-            jsonObject.put("register", jsonArray);
-
-            return jsonObject;
+            return student1;
         } catch (JSONException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
-        return student1;
+        return null;
     }
 }
 
