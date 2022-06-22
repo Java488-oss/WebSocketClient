@@ -44,7 +44,6 @@ public class MainActivity extends AppCompatActivity {
             String id = mStompClient.get().getTopicId("/spring-security-mvc-socket/Login");
 
             mStompClient.get().topic("/user/" + id + "/queue/updates").subscribe(topicMessage -> {
-                Log.d(TAG, "Stomp MSG " + topicMessage.getPayload());
                 str[0] = topicMessage.getPayload();
                 if (str[0].equals("false")) {
 
@@ -85,7 +84,6 @@ public class MainActivity extends AppCompatActivity {
             EditText etText = findViewById(R.id.etText);
             EditText etName = findViewById(R.id.etName);
             JSONObject student = new JSONObject();
-
             student.put("user", etName.getText());
             student.put("pass", etText.getText());
             student.put("id", id);

@@ -1,9 +1,94 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
+    android:orientation="vertical"
     android:layout_height="match_parent"
     tools:context=".FindUser">
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+    <EditText
+        android:id="@+id/userFrom"
+        android:layout_width="wrap_content"
+        android:layout_height="40dp"
+        android:layout_weight="15"
+        android:background="@drawable/layout_bg_gray"
+        android:ems="10"
+        android:hint="Введите имя..."
+        android:inputType="textPersonName"
+        android:textColorHint="@color/colorDarkLight3"
+        android:textSize="18dp" />
+
+    <ScrollView
+        android:id="@+id/svCont"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginBottom="80dp"
+        android:layout_marginTop="60dp">
+
+        <LinearLayout
+            android:id="@+id/llCont"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+        </LinearLayout>
+    </ScrollView>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_marginTop="20dp"
+        android:layout_marginBottom="10dp"
+        android:layout_marginLeft="5dp"
+        android:layout_marginRight="10dp"
+        android:paddingTop="20dp"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="10dp">
+
+                <Button
+                    android:layout_marginTop="-2dp"
+                    android:id="@+id/btnPlus"
+                    android:layout_width="20dp"
+                    android:layout_height="24dp"
+                    android:layout_marginRight="5dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/paperclip" />
+
+                <EditText
+                    android:id="@+id/etSendMsg"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:layout_weight="15"
+                    android:background="@drawable/layout_bg_gray"
+                    android:ems="10"
+                    android:hint="Введите сообщение..."
+                    android:inputType="textPersonName"
+                    android:textColorHint="@color/colorDarkLight3"
+                    android:textSize="18dp" />
+
+                <Button
+                    android:id="@+id/btnSendMsg"
+                    android:layout_width="30dp"
+                    android:layout_height="40dp"
+                    android:layout_marginLeft="5dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/send"
+                    android:paddingTop="4dp" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+</RelativeLayout>
+
