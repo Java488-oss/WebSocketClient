@@ -17,15 +17,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.util.Objects;
-import java.util.concurrent.ExecutionException;
-
 import ua.naiksoftware.stomp.StompClient;
 
 public class MainActivity extends AppCompatActivity {
-
-
-    String addr = "";
 
     @SuppressLint("CheckResult")
     @Override
@@ -35,26 +29,26 @@ public class MainActivity extends AppCompatActivity {
 
         ///////////////////////////////////////////////////////////////////
 
-
         Button btnSend = findViewById(R.id.btnSend);
         Button btnRegister = findViewById(R.id.btnRegister);
         EditText etText = findViewById(R.id.etText);
         EditText etName = findViewById(R.id.etName);
-
 
         AsyncTask<Void, Void, StompClient> mStompClient = new WebSocketsConnectLocal(MainActivity.this).execute();
         try {
 
             final String[] str = new String[1];
 
+            mStompClient.get().topic("/spring-security-mvc-socket/Login").subscribe();
 
-            mStompClient.get().topic("/user/11/queue/updates").subscribe(topicMessage -> {
+            String id = mStompClient.get().getTopicId("/spring-security-mvc-socket/Login");
+
+            mStompClient.get().topic("/user/" + id + "/queue/updates").subscribe(topicMessage -> {
                 Log.d(TAG, "Stomp MSG " + topicMessage.getPayload());
                 str[0] = topicMessage.getPayload();
                 if (str[0].equals("false")) {
 
                     runOnUiThread(new Runnable() {
-
                         @Override
                         public void run() {
                             Toast.makeText(MainActivity.this, "Вы ввели не коректные данные", Toast.LENGTH_LONG).show();
@@ -70,8 +64,7 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void onClick(View v) {
                     try {
-                        mStompClient.get().send("/spring-security-mvc-socket/hello-msg-mapping", String.valueOf(textSend())).subscribe();
-                        addr = Objects.requireNonNull(textSend()).getString("pass");
+                        mStompClient.get().send("/spring-security-mvc-socket/Login", String.valueOf(textSend(id))).subscribe();
                         etName.getText().clear();
                         etText.getText().clear();
                     } catch (Exception e) {
@@ -87,16 +80,17 @@ public class MainActivity extends AppCompatActivity {
         ///////////////////////////////////////////////////////////////////
     }
 
-    private JSONObject textSend() {
+    private JSONObject textSend(String id) {
         try {
             EditText etText = findViewById(R.id.etText);
             EditText etName = findViewById(R.id.etName);
-            JSONObject student1 = new JSONObject();
+            JSONObject student = new JSONObject();
 
-            student1.put("user", etName.getText());
-            student1.put("pass", etText.getText());
+            student.put("user", etName.getText());
+            student.put("pass", etText.getText());
+            student.put("id", id);
 
-            return student1;
+            return student;
         } catch (JSONException e) {
             e.printStackTrace();
         }
