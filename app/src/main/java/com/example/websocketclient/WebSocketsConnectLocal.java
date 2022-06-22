@@ -27,11 +27,23 @@ public class WebSocketsConnectLocal extends AsyncTask<Void, Void, StompClient> {
     @Override
     protected StompClient doInBackground(Void... voids) {
         try {
-            mStompClient = Stomp.over(Stomp.ConnectionProvider.OKHTTP, "ws://192.168.168.8:8050/room/websocket");
+            mStompClient = Stomp.over(Stomp.ConnectionProvider.OKHTTP, "ws://192.168.140.245:8050/room/websocket");
             mStompClient.connect();
-//            mStompClient.topic("/test"+"-User"+mStompClient.getTopicId("/spring-security-mvc-socket/hello-msg-mapping")).subscribe();
 
-//            Log.d(TAG, "Stomp "+mStompClient.getTopicId("/spring-security-mvc-socket/hello-msg-mapping"));
+//            mStompClient.lifecycle().subscribe(lifecycleEvent -> {
+//
+//                switch (lifecycleEvent.getType()) {
+//                    case OPENED:
+//                        Log.d(TAG, "Stomp opened " + lifecycleEvent.getMessage());
+//                    case CLOSED:
+//                        Log.d(TAG, "Stomp closed " + lifecycleEvent.getMessage());
+//                    case FAILED_SERVER_HEARTBEAT:
+//                        Log.d(TAG, "Stomp failed server " + lifecycleEvent.getMessage());
+//                    case ERROR:
+//                        Log.d(TAG, "Stomp error " + lifecycleEvent.getMessage());
+//                }
+//            });
+
             return mStompClient;
         } catch (Exception e) {
             e.printStackTrace();
