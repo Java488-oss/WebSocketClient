@@ -27,7 +27,7 @@ public class WebSocketsConnectLocal extends AsyncTask<Void, Void, StompClient> {
     @Override
     protected StompClient doInBackground(Void... voids) {
         try {
-            mStompClient = Stomp.over(Stomp.ConnectionProvider.OKHTTP, "ws://192.168.164.5:8050/room/websocket");
+            mStompClient = Stomp.over(Stomp.ConnectionProvider.OKHTTP, "ws://192.168.1.9:8050/room/websocket");
             mStompClient.connect();
             return mStompClient;
         } catch (Exception e) {
