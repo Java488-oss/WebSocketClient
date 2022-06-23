@@ -14,12 +14,19 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.websocketclient.DB.SqLiteDatabase;
+import com.example.websocketclient.Entity.UserEntity;
+
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import java.io.IOException;
 
 import ua.naiksoftware.stomp.StompClient;
 
 public class MainActivity extends AppCompatActivity {
+
+    private SqLiteDatabase sqlLiteDatabase = new SqLiteDatabase(this);
 
     @SuppressLint("CheckResult")
     @Override
@@ -28,6 +35,11 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         ///////////////////////////////////////////////////////////////////
+
+        try {
+            sqlLiteDatabase.create_db(this);
+        } catch (IOException e) {
+        }
 
         Button btnSend = findViewById(R.id.btnSend);
         Button btnRegister = findViewById(R.id.btnRegister);
@@ -45,7 +57,9 @@ public class MainActivity extends AppCompatActivity {
 
             mStompClient.get().topic("/user/" + id + "/queue/updates").subscribe(topicMessage -> {
                 str[0] = topicMessage.getPayload();
-                if (str[0].equals("false")) {
+                JSONObject jsonObject = new JSONObject(str[0]);
+
+                if (jsonObject.getString("result").equals("false")) {
 
                     runOnUiThread(new Runnable() {
                         @Override
@@ -54,9 +68,25 @@ public class MainActivity extends AppCompatActivity {
                         }
                     });
                 } else {
+                    //////////////
+                    // Записываем данные о пользователе в бд
+                    sqlLiteDatabase.open(this);
+                    String updateQuery = "UPDATE User SET UserLogin = " + jsonObject.getString("user") + ", UserPassword = " + jsonObject.getString("pass") + " WHERE UserID = 1";
+                    sqlLiteDatabase.database.execSQL(updateQuery);
+                    sqlLiteDatabase.close();
+                    //////////////
+
+
                     Intent myIntent = new Intent(MainActivity.this, FindUser.class);
                     startActivity(myIntent);
                 }
+            });
+
+
+            mStompClient.get().topic("/user/13/queue/state").subscribe(topicMessage -> {
+                str[0] = topicMessage.getPayload();
+
+                Log.d(TAG, "Stomp json " + str[0]);
             });
 
             btnSend.setOnClickListener(new View.OnClickListener() {
