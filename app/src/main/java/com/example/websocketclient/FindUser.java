@@ -1,6 +1,5 @@
 package com.example.websocketclient;
 
-import static android.content.ContentValues.TAG;
 
 import android.annotation.SuppressLint;
 import android.content.Intent;
@@ -12,24 +11,16 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Base64;
-import android.util.Log;
 import android.view.Gravity;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.RelativeLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
-import android.widget.Toast;
-import android.widget.Toolbar;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 
@@ -40,16 +31,10 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
-import java.util.zip.GZIPOutputStream;
 
-import okio.Utf8;
 import ua.naiksoftware.stomp.StompClient;
 
 public class FindUser extends AppCompatActivity {
@@ -170,38 +155,32 @@ public class FindUser extends AppCompatActivity {
                             Bitmap bm = BitmapFactory.decodeFile(path);
                             ByteArrayOutputStream baos = new ByteArrayOutputStream();
                             bm.compress(Bitmap.CompressFormat.JPEG, 100, baos); // bm is the bitmap object
-//                            byte[] b = Base64.encode(baos.toByteArray(), Base64.DEFAULT);
                             byte[] b = baos.toByteArray();
                             String encodedImage = Base64.encodeToString(b, Base64.DEFAULT);
-                            //////////////////////////////////////
-                            byte[] decodedString = Base64.decode(encodedImage, Base64.DEFAULT);
 
-                            Bitmap decodedByte = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
-
-                            ImageView tv1 = (ImageView) findViewById(R.id.iv);
-//                            InputStream si1 = asset.open("image/" + cat_arr1[i] + ".png");
-                            tv1.setImageBitmap(decodedByte);
-                            //////////////////////////////////////
+//                            //////////////////////////////////////
+//                            byte[] decodedString = Base64.decode(encodedImage, Base64.DEFAULT);
+//                            Bitmap decodedByte = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
+//                            ImageView tv1 = (ImageView) findViewById(R.id.iv);
+//                            tv1.setImageBitmap(decodedByte);
+//                            //////////////////////////////////////
 
 
                             try{
+                                EditText userFrom = findViewById(R.id.userFrom);
                                 JSONObject student = new JSONObject();
 
-                                student.put("image", compress(encodedImage));
+                                student.put("userTO", getPass());
+                                student.put("userFrom", userFrom.getText());
+                                student.put("msg", "img@"+encodedImage);
 
-                                mStompClient.get().send("/spring-security-mvc-socket/photo", String.valueOf(student)).subscribe();
+
+                                mStompClient.get().send("/spring-security-mvc-socket/SendMsg", String.valueOf(student)).subscribe();
                             } catch (ExecutionException | InterruptedException e) {
                                 e.printStackTrace();
                             } catch (JSONException e) {
                                 e.printStackTrace();
                             }
-
-//                            Intent intent = new Intent();
-//                            intent.setAction (Intent.ACTION_VIEW);
-//                            intent.setDataAndType(imageUri, "image/jpg");
-//                            startActivity (intent);
-
-                            Log.d(TAG, "Chat IMG : " + compress(encodedImage));
                         }
                     }
 
@@ -209,109 +188,105 @@ public class FindUser extends AppCompatActivity {
         }
     }
 
-    public static String compress(String str) {
+    private void inboxMg(){
+
         try {
-            if (str == null || str.length() == 0) {
-                return str;
-            }
+            int id = 1;
+            sqlLiteDatabase.open(this);
+            String selectQuery = "SELECT * FROM MSG WhERE TabTo="+getPass() + " OR TabFrom="+getPass();
+            //String selectQuery = "SELECT * FROM Chat WhERE UserTabNum="+chatUserTabNum;
+            Cursor cursor = sqlLiteDatabase.database.rawQuery(selectQuery, null);
+            cursor.getCount();
+            if (cursor.moveToFirst()) {
+                do {
+                    final CardView cw = new CardView(this);
+                    cw.setId(id);
+                    cw.setClipToOutline(true);
 
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            GZIPOutputStream gzip = new GZIPOutputStream(out);
-            gzip.write(str.getBytes());
-            gzip.close();
-            return out.toString(String.valueOf(StandardCharsets.UTF_8));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+                    LinearLayout llCont = findViewById(R.id.llCont);
 
-        return "str";
-    }
+                    LinearLayout.LayoutParams llp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT,1f);
 
-        private void inboxMg(){
+                    LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                    layoutParams.setMargins(15, 15, 15, 0);
 
-            try {
-                int id = 1;
-                sqlLiteDatabase.open(this);
-                String selectQuery = "SELECT * FROM MSG WhERE TabTo="+getPass() + " OR TabFrom="+getPass();
-                //String selectQuery = "SELECT * FROM Chat WhERE UserTabNum="+chatUserTabNum;
-                Cursor cursor = sqlLiteDatabase.database.rawQuery(selectQuery, null);
-                cursor.getCount();
-                if (cursor.moveToFirst()) {
-                    do {
-                        final CardView cw = new CardView(this);
-                        cw.setId(id);
-                        cw.setClipToOutline(true);
+                    String msg =cursor.getString(5);
 
-                        LinearLayout llCont = findViewById(R.id.llCont);
+                    if(msg.contains("img@")){
+                        //////////////////////////////////////
+                        byte[] decodedString = Base64.decode(msg.replace("img@",""), Base64.DEFAULT);
+                        Bitmap decodedByte = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
+                        ImageView tv1 = (ImageView) findViewById(R.id.iv);
+                        tv1.setImageBitmap(decodedByte);
+                        cw.addView(tv1);
+                        //////////////////////////////////////
 
-                        LinearLayout.LayoutParams llp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
-                                ViewGroup.LayoutParams.WRAP_CONTENT,1f);
-
-                        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
-                                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-                        layoutParams.setMargins(15, 15, 15, 0);
-
+                    }else {
                         TextView tv = new TextView(this);
                         tv.setLayoutParams(llp);
                         tv.setTextSize(20);
                         tv.setTextColor(Color.parseColor("#E1E2E5"));
                         tv.setText(cursor.getString(5));
                         cw.setBackgroundResource(R.drawable.layout_bg_gray);
-
-                        if(cursor.getString(2).equals(getPass())){
-                            cw.setBackgroundResource(R.drawable.layout_bg_blue);
-                            layoutParams.gravity=Gravity.RIGHT;
-                        }
-
                         cw.addView(tv);
+                    }
 
-                        LinearLayout ll1 = new LinearLayout(this);
+                    if(cursor.getString(2).equals(getPass())){
+                        cw.setBackgroundResource(R.drawable.layout_bg_blue);
+                        layoutParams.gravity=Gravity.RIGHT;
+                    }
 
-                        ll1.addView(cw);
+//                    cw.addView(tv);
 
-                        llCont.addView(ll1, layoutParams);
+                    LinearLayout ll1 = new LinearLayout(this);
 
-                    } while (cursor.moveToNext());
-                }
+                    ll1.addView(cw);
 
-                sqlLiteDatabase.close();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
+                    llCont.addView(ll1, layoutParams);
 
-
-        private JSONObject textSend() {
-            try {
-                EditText userFrom = findViewById(R.id.userFrom);
-                EditText etSendMsg = findViewById(R.id.etSendMsg);
-                JSONObject student = new JSONObject();
-
-                student.put("userTO", getPass());
-                student.put("userFrom", userFrom.getText());
-                student.put("msg", etSendMsg.getText());
-
-                return student;
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-            return null;
-        }
-
-        private String getPass(){
-            //////////////
-            // Получаем пароль пользователя из бд
-            sqlLiteDatabase.open(this);
-            String select = "SELECT UserPassword FROM USER WHERE UserID = 1";
-            Cursor cursor = sqlLiteDatabase.database.rawQuery(select, null);
-            String userTo = "";
-            if (cursor.moveToFirst()) {
-                do {
-                    return cursor.getString(0);
                 } while (cursor.moveToNext());
             }
+
             sqlLiteDatabase.close();
-            //////////////
-            return "";
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
+
+
+    private JSONObject textSend() {
+        try {
+            EditText userFrom = findViewById(R.id.userFrom);
+            EditText etSendMsg = findViewById(R.id.etSendMsg);
+            JSONObject student = new JSONObject();
+
+            student.put("userTO", getPass());
+            student.put("userFrom", userFrom.getText());
+            student.put("msg", etSendMsg.getText());
+
+            return student;
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    private String getPass(){
+        //////////////
+        // Получаем пароль пользователя из бд
+        sqlLiteDatabase.open(this);
+        String select = "SELECT UserPassword FROM USER WHERE UserID = 1";
+        Cursor cursor = sqlLiteDatabase.database.rawQuery(select, null);
+        String userTo = "";
+        if (cursor.moveToFirst()) {
+            do {
+                return cursor.getString(0);
+            } while (cursor.moveToNext());
+        }
+        sqlLiteDatabase.close();
+        //////////////
+        return "";
+    }
+}
