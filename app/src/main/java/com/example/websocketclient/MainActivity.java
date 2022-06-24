@@ -2,6 +2,7 @@ package com.example.websocketclient;
 
 import static android.content.ContentValues.TAG;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.os.AsyncTask;
@@ -13,6 +14,7 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 
 import com.example.websocketclient.DB.SqLiteDatabase;
 import com.example.websocketclient.Entity.UserEntity;
@@ -27,12 +29,19 @@ import ua.naiksoftware.stomp.StompClient;
 public class MainActivity extends AppCompatActivity {
 
     private SqLiteDatabase sqlLiteDatabase = new SqLiteDatabase(this);
+    private String[] galleryPermissions = {Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE};
 
     @SuppressLint("CheckResult")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+
+        ActivityCompat.requestPermissions(this,
+                new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                1);
 
         ///////////////////////////////////////////////////////////////////
 
