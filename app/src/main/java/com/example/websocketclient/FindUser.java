@@ -1,6 +1,8 @@
 package com.example.websocketclient;
 
 
+import static ua.naiksoftware.stomp.provider.OkHttpConnectionProvider.TAG;
+
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.database.Cursor;
@@ -10,7 +12,9 @@ import android.graphics.Color;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Environment;
 import android.util.Base64;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -23,6 +27,7 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
+import androidx.core.content.ContextCompat;
 
 import com.example.websocketclient.DB.SqLiteDatabase;
 import com.example.websocketclient.Entity.MsgEntity;
@@ -31,6 +36,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -71,22 +78,9 @@ public class FindUser extends AppCompatActivity {
                 sqlLiteDatabase.open(FindUser.this);
                 sqlLiteDatabase.insertMSg(new MsgEntity(jsonObject.getString("userTO"), Integer.parseInt(jsonObject.getString("userTO")), jsonObject.getString("userFrom"), Integer.parseInt(jsonObject.getString("userFrom")), jsonObject.getString("msg"), 0));
                 sqlLiteDatabase.close();
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        LinearLayout linearLayout = findViewById(R.id.llCont);
-                        linearLayout.removeAllViews();
-                        inboxMg();
-                        ScrollView svCont = findViewById(R.id.svCont);
 
-                        svCont.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                svCont.fullScroll(ScrollView.FOCUS_DOWN);
-                            }
-                        });
-                    }
-                });
+                updateLL();
+
             });
 
             //Открытие галереии
@@ -95,10 +89,6 @@ public class FindUser extends AppCompatActivity {
                 @Override
                 public void onClick(View view) {
 
-                    //Camera
-//                Intent takePicture = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-//                startActivityForResult(Intent.createChooser(takePicture, "Select Picture"), 0);//zero can be replaced with any action code
-                    ///Photo
                     Intent pickPhoto = new Intent(Intent.ACTION_PICK,
                             android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
                     pickPhoto.setType("image/*");
@@ -121,7 +111,7 @@ public class FindUser extends AppCompatActivity {
                         sqlLiteDatabase.insertMSg(new MsgEntity(finalUserTo, Integer.parseInt(finalUserTo), String.valueOf(userFrom.getText()), Integer.parseInt(String.valueOf(userFrom.getText())), String.valueOf(etSendMsg.getText()), 0));
                         sqlLiteDatabase.close();
 
-                        userFrom.getText().clear();
+                        updateLL();
                         etSendMsg.getText().clear();
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -134,6 +124,7 @@ public class FindUser extends AppCompatActivity {
         }
     }
 
+
     //получение списка с uri путями
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -141,44 +132,39 @@ public class FindUser extends AppCompatActivity {
 
         AsyncTask<Void, Void, StompClient> mStompClient = new WebSocketsConnectLocal(this).execute();
 
-        List<String> listURI = new ArrayList<>();
-
         switch (requestCode) {
             case 1:
             case 0:
                 if (resultCode == RESULT_OK) {
                     if (data.getClipData() != null) {
                         for (int i = 0; i < data.getClipData().getItemCount(); i++) {
-                            Uri imageUri = data.getClipData().getItemAt(i).getUri();
-                            PhotoRealPath realPath = new PhotoRealPath(this);
-                            String path = realPath.getRealPathFromUri(this, imageUri);
-                            Bitmap bm = BitmapFactory.decodeFile(path);
-                            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                            bm.compress(Bitmap.CompressFormat.JPEG, 100, baos); // bm is the bitmap object
-                            byte[] b = baos.toByteArray();
-                            String encodedImage = Base64.encodeToString(b, Base64.DEFAULT);
-
-//                            //////////////////////////////////////
-//                            byte[] decodedString = Base64.decode(encodedImage, Base64.DEFAULT);
-//                            Bitmap decodedByte = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
-//                            ImageView tv1 = (ImageView) findViewById(R.id.iv);
-//                            tv1.setImageBitmap(decodedByte);
-//                            //////////////////////////////////////
-
-
                             try{
+                                Uri imageUri = data.getClipData().getItemAt(i).getUri();
+                                PhotoRealPath realPath = new PhotoRealPath(this);
+
+                                JSONObject jsonObject = textSend();
+                                sqlLiteDatabase.open(FindUser.this);
+                                sqlLiteDatabase.insertMSg(new MsgEntity(getPass(), Integer.parseInt(getPass()), jsonObject.getString("userFrom"), Integer.parseInt(jsonObject.getString("userFrom")), "img$"+realPath.getRealPathFromUri(this, imageUri), 0));
+                                sqlLiteDatabase.close();
+                                updateLL();
+
+                                String path = realPath.getRealPathFromUri(this, imageUri);
+                                Bitmap bm = BitmapFactory.decodeFile(path);
+                                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                                bm.compress(Bitmap.CompressFormat.JPEG, 100, baos); // bm is the bitmap object
+                                byte[] b = baos.toByteArray();
+                                String encodedImage = Base64.encodeToString(b, Base64.DEFAULT);
+
                                 EditText userFrom = findViewById(R.id.userFrom);
                                 JSONObject student = new JSONObject();
 
                                 student.put("userTO", getPass());
                                 student.put("userFrom", userFrom.getText());
                                 student.put("msg", "img@"+encodedImage);
-
-
                                 mStompClient.get().send("/spring-security-mvc-socket/SendMsg", String.valueOf(student)).subscribe();
-                            } catch (ExecutionException | InterruptedException e) {
-                                e.printStackTrace();
-                            } catch (JSONException e) {
+
+                                updateLL();
+                            } catch (Exception e) {
                                 e.printStackTrace();
                             }
                         }
@@ -214,13 +200,47 @@ public class FindUser extends AppCompatActivity {
 
                     String msg =cursor.getString(5);
 
-                    if(msg.contains("img@")){
-                        //////////////////////////////////////
-                        byte[] decodedString = Base64.decode(msg.replace("img@",""), Base64.DEFAULT);
-                        Bitmap decodedByte = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
-                        ImageView tv1 = (ImageView) findViewById(R.id.iv);
-                        tv1.setImageBitmap(decodedByte);
+                    if(msg.contains("img$")){
+
+                        ImageView tv1 = new ImageView(this);
+                        tv1.setLayoutParams(new LinearLayout.LayoutParams(400,400));
+
+                        tv1.setImageURI(Uri.parse(msg.replace("img$","")));
                         cw.addView(tv1);
+                        //////////////////////////////////////
+
+                    }else if(msg.contains("img@")) {
+                        //////////////////////////////////////
+                        byte[] decodedString = Base64.decode(msg.replace("img@", ""), Base64.DEFAULT);
+                        Bitmap decodedByte = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
+                        ImageView tv1 = new ImageView(this);
+                        tv1.setLayoutParams(new LinearLayout.LayoutParams(400, 400));
+                        tv1.setImageBitmap(decodedByte);
+//                        tv1.setImageURI(Uri.parse(f.getAbsolutePath()));
+                        cw.addView(tv1);
+
+//                        File f = new File(getRootOfExternalStorage(1), "test.jpg");
+//                        f.createNewFile();
+//
+//                        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+//                        decodedByte.compress(Bitmap.CompressFormat.PNG, 0 /*ignored for PNG*/, bos);
+//                        byte[] bitmapdata = bos.toByteArray();
+//
+//                        FileOutputStream fos = new FileOutputStream(f);
+//                        fos.write(bitmapdata);
+//                        fos.flush();
+//                        fos.close();
+
+//                        tv1.setOnClickListener(new View.OnClickListener() {
+//                            @Override
+//                            public void onClick(View v) {
+//                                Intent intent = new Intent();
+//                                intent.setAction(Intent.ACTION_VIEW);
+//                                intent.setDataAndType(Uri.parse(f.getAbsolutePath()), "image/jpg");
+//                                startActivity(intent);
+//                            }
+//
+//                        });
                         //////////////////////////////////////
 
                     }else {
@@ -271,6 +291,46 @@ public class FindUser extends AppCompatActivity {
             e.printStackTrace();
         }
         return null;
+    }
+
+
+    //////////////////////////////////////
+    // Получение системных путей
+    public String getRootOfExternalStorage(int i) {
+        File[] externalStorageFiles = ContextCompat.getExternalFilesDirs(this, null);
+        switch (i){
+            case 1:
+                for (File file : externalStorageFiles) {
+                    // получение системного пути /storage/emulated/0
+                    return file.getAbsolutePath().replaceAll("/Android/data/" + getPackageName() + "/files", "");
+                }
+            case 2:
+                for (File file : externalStorageFiles) {
+                    // Получение полного пути приложения  /storage/emulated/0/Android/data/com.example.sportapp/files
+                    return file.getAbsolutePath();
+                }
+        }
+        return null;
+    }
+
+    ////////////////////////////////
+    private void updateLL(){
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                LinearLayout linearLayout = findViewById(R.id.llCont);
+                linearLayout.removeAllViews();
+                inboxMg();
+                ScrollView svCont = findViewById(R.id.svCont);
+
+                svCont.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        svCont.fullScroll(ScrollView.FOCUS_DOWN);
+                    }
+                });
+            }
+        });
     }
 
     private String getPass(){
