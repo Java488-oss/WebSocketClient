@@ -37,6 +37,8 @@ import org.json.JSONObject;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.concurrent.ExecutionException;
 
 import ua.naiksoftware.stomp.StompClient;
 
@@ -45,7 +47,7 @@ public class FindUser extends AppCompatActivity {
     private final String[] str = new String[1];
     private SqLiteDatabase sqlLiteDatabase = new SqLiteDatabase(this);
 
-    private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH-mm");
+    private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
 
     @SuppressLint("CheckResult")
     @Override
@@ -86,15 +88,15 @@ public class FindUser extends AppCompatActivity {
                 str[0] = topicMessage.getPayload();
                 JSONObject jsonObject = new JSONObject(str[0]);
 
-//                JSONObject student = new JSONObject();
-//
-//                student.put("date", jsonObject.getString(""));
-//                student.put("state", "true");
-//
-//                mStompClient.get().send("/spring-security-mvc-socket/isSend", String.valueOf(student)).subscribe();
+                JSONObject student = new JSONObject();
+
+                student.put("Date", jsonObject.getString("Date"));
+                student.put("state", "true");
+
+                mStompClient.get().send("/spring-security-mvc-socket/isSend", String.valueOf(student)).subscribe();
 
                 sqlLiteDatabase.open(FindUser.this);
-                sqlLiteDatabase.insertMSg(new MsgEntity(jsonObject.getString("userTO"), Integer.parseInt(jsonObject.getString("userTO")), jsonObject.getString("userFrom"), Integer.parseInt(jsonObject.getString("userFrom")), jsonObject.getString("msg"), 0));
+                sqlLiteDatabase.insertMSg(new MsgEntity(jsonObject.getString("userTO"), Integer.parseInt(jsonObject.getString("userTO")), jsonObject.getString("userFrom"), Integer.parseInt(jsonObject.getString("userFrom")), jsonObject.getString("msg"), 0, jsonObject.getString("Date")));
                 sqlLiteDatabase.close();
 
                 updateLL();
@@ -125,7 +127,7 @@ public class FindUser extends AppCompatActivity {
                         EditText etSendMsg = findViewById(R.id.etSendMsg);
 
                         sqlLiteDatabase.open(FindUser.this);
-                        sqlLiteDatabase.insertMSg(new MsgEntity(finalUserTo, Integer.parseInt(finalUserTo), String.valueOf(userFrom.getText()), Integer.parseInt(String.valueOf(userFrom.getText())), String.valueOf(etSendMsg.getText()), 0));
+                        sqlLiteDatabase.insertMSg(new MsgEntity(finalUserTo, Integer.parseInt(finalUserTo), String.valueOf(userFrom.getText()), Integer.parseInt(String.valueOf(userFrom.getText())), String.valueOf(etSendMsg.getText()), 0,dateFormat.format(new Date())));
                         sqlLiteDatabase.close();
 
                         updateLL();
@@ -156,12 +158,13 @@ public class FindUser extends AppCompatActivity {
                     if (data.getClipData() != null) {
                         for (int i = 0; i < data.getClipData().getItemCount(); i++) {
                             try{
+                                Log.d(TAG, "Image "+data.getClipData().getItemAt(i).getUri());
                                 Uri imageUri = data.getClipData().getItemAt(i).getUri();
                                 PhotoRealPath realPath = new PhotoRealPath(this);
 
                                 JSONObject jsonObject = textSend();
                                 sqlLiteDatabase.open(FindUser.this);
-                                sqlLiteDatabase.insertMSg(new MsgEntity(getPass(), Integer.parseInt(getPass()), jsonObject.getString("userFrom"), Integer.parseInt(jsonObject.getString("userFrom")), "img$"+realPath.getRealPathFromUri(this, imageUri), 0));
+                                sqlLiteDatabase.insertMSg(new MsgEntity(getPass(), Integer.parseInt(getPass()), jsonObject.getString("userFrom"), Integer.parseInt(jsonObject.getString("userFrom")), "img$"+realPath.getRealPathFromUri(this, imageUri), 0,jsonObject.getString("Date")));
                                 sqlLiteDatabase.close();
                                 updateLL();
 
@@ -300,6 +303,7 @@ public class FindUser extends AppCompatActivity {
             student.put("userTO", getPass());
             student.put("userFrom", userFrom.getText());
             student.put("msg", etSendMsg.getText());
+            student.put("Date", dateFormat.format(new Date()));
 
             return student;
         } catch (JSONException e) {
@@ -363,5 +367,18 @@ public class FindUser extends AppCompatActivity {
         sqlLiteDatabase.close();
         //////////////
         return "";
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        AsyncTask<Void, Void, StompClient> mStompClient = new WebSocketsConnectLocal(this).execute();
+        try{
+            mStompClient.get().disconnect();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 }

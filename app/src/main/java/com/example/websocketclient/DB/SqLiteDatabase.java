@@ -118,6 +118,7 @@ public class SqLiteDatabase extends SQLiteOpenHelper {
         values.put("TabFrom", msgEntity.getTabFrom());
         values.put("Msg", msgEntity.getMsg());
         values.put("Status", msgEntity.getStatus());
+        values.put("MsgDate", msgEntity.getMsgDate());
 
         database.insert("MSG", null, values);
     }

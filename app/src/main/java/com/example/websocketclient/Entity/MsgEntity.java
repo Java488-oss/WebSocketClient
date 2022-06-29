@@ -9,17 +9,19 @@ public class MsgEntity {
     private int TabFrom;
     private String Msg;
     private int Status;
+    private String MsgDate;
 
     public MsgEntity() {
     }
 
-    public MsgEntity(String nameTo, int tabTo, String nameFrom, int tabFrom, String msg, int status) {
+    public MsgEntity(String nameTo, int tabTo, String nameFrom, int tabFrom, String msg, int status, String msgDate) {
         NameTo = nameTo;
         TabTo = tabTo;
         NameFrom = nameFrom;
         TabFrom = tabFrom;
         Msg = msg;
         Status = status;
+        MsgDate = msgDate;
     }
 
     public String getNameTo() {
@@ -68,5 +70,13 @@ public class MsgEntity {
 
     public void setStatus(int status) {
         Status = status;
+    }
+
+    public String getMsgDate() {
+        return MsgDate;
+    }
+
+    public void setMsgDate(String msgDate) {
+        MsgDate = msgDate;
     }
 }
