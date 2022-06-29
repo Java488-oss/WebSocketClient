@@ -12,7 +12,6 @@ import android.graphics.Color;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Environment;
 import android.util.Base64;
 import android.util.Log;
 import android.view.Gravity;
@@ -37,10 +36,7 @@ import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.ExecutionException;
+import java.text.SimpleDateFormat;
 
 import ua.naiksoftware.stomp.StompClient;
 
@@ -49,6 +45,7 @@ public class FindUser extends AppCompatActivity {
     private final String[] str = new String[1];
     private SqLiteDatabase sqlLiteDatabase = new SqLiteDatabase(this);
 
+    private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH-mm");
 
     @SuppressLint("CheckResult")
     @Override
@@ -72,9 +69,30 @@ public class FindUser extends AppCompatActivity {
             Button btnSendMsg = findViewById(R.id.btnSendMsg);
             Button btnPlus = findViewById(R.id.btnPlus);
 
+            mStompClient.get().topic("/user/" + getPass() + "/queue/state").subscribe(topicMessage -> {
+                str[0] = topicMessage.getPayload();
+
+                JSONObject student = new JSONObject();
+
+                student.put("pass", getPass());
+                student.put("state", "true");
+
+                mStompClient.get().send("/spring-security-mvc-socket/isOnline", String.valueOf(student)).subscribe();
+                Log.d(TAG, "Timer to server "+str[0]);
+            });
+
+
             mStompClient.get().topic("/user/" + getPass() + "/queue/updates").subscribe(topicMessage -> {
                 str[0] = topicMessage.getPayload();
                 JSONObject jsonObject = new JSONObject(str[0]);
+
+//                JSONObject student = new JSONObject();
+//
+//                student.put("date", jsonObject.getString(""));
+//                student.put("state", "true");
+//
+//                mStompClient.get().send("/spring-security-mvc-socket/isSend", String.valueOf(student)).subscribe();
+
                 sqlLiteDatabase.open(FindUser.this);
                 sqlLiteDatabase.insertMSg(new MsgEntity(jsonObject.getString("userTO"), Integer.parseInt(jsonObject.getString("userTO")), jsonObject.getString("userFrom"), Integer.parseInt(jsonObject.getString("userFrom")), jsonObject.getString("msg"), 0));
                 sqlLiteDatabase.close();
@@ -82,7 +100,6 @@ public class FindUser extends AppCompatActivity {
                 updateLL();
 
             });
-
             //Открытие галереии
             btnPlus.setOnClickListener(new View.OnClickListener() {
 
@@ -257,8 +274,6 @@ public class FindUser extends AppCompatActivity {
                         cw.setBackgroundResource(R.drawable.layout_bg_blue);
                         layoutParams.gravity=Gravity.RIGHT;
                     }
-
-//                    cw.addView(tv);
 
                     LinearLayout ll1 = new LinearLayout(this);
 

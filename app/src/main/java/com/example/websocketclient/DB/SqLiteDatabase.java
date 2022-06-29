@@ -107,7 +107,6 @@ public class SqLiteDatabase extends SQLiteOpenHelper {
         values.put("UserLogin", userEntity.getUser());
         values.put("UserPassword", userEntity.getPass());
 
-
         database.insert("User", null, values);
     }
 
@@ -119,8 +118,6 @@ public class SqLiteDatabase extends SQLiteOpenHelper {
         values.put("TabFrom", msgEntity.getTabFrom());
         values.put("Msg", msgEntity.getMsg());
         values.put("Status", msgEntity.getStatus());
-
-
 
         database.insert("MSG", null, values);
     }
