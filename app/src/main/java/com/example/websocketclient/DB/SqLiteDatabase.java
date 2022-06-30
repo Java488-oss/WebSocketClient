@@ -6,7 +6,6 @@ import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.util.Log;
 import android.widget.Toast;
 
 import com.example.websocketclient.Entity.MsgEntity;
@@ -102,12 +101,62 @@ public class SqLiteDatabase extends SQLiteOpenHelper {
         super.close();
     }
 
+    public List<UserEntity> getUser() {
+        List<UserEntity> userList = new ArrayList<UserEntity>();
+        String selectQuery = "SELECT  * FROM User";
+
+        Cursor cursor = database.rawQuery(selectQuery, null);
+
+        if (cursor.moveToFirst()) {
+            do {
+                int id = cursor.getInt(0);
+                String user = cursor.getString(1);
+                String pass = cursor.getString(2);
+
+                UserEntity userEntity = new UserEntity(user,pass);
+
+                userList.add(userEntity);
+
+            } while (cursor.moveToNext());
+        }
+        return userList;
+    }
+
     public void insertUser(UserEntity userEntity) throws Exception {
         ContentValues values = new ContentValues();
         values.put("UserLogin", userEntity.getUser());
         values.put("UserPassword", userEntity.getPass());
 
         database.insert("User", null, values);
+    }
+
+    public void updateUser(List<UserEntity> userEntityList){
+        try {
+            List<UserEntity> listUser = getUser();
+
+            for (int i = 0; i < userEntityList.size(); ++i) {
+                boolean inserting = true;
+                for (int j = 0; j < listUser.size(); ++j) {
+
+                    if (listUser.get(j).getPass().equals(userEntityList.get(i).getPass())) {
+                        inserting = false;
+                        break;
+                    }
+                }
+
+                if (inserting) {
+                    try {
+                        insertUser(userEntityList.get(i));
+
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
     }
 
     public void insertMSg(MsgEntity msgEntity) throws Exception {
@@ -122,5 +171,4 @@ public class SqLiteDatabase extends SQLiteOpenHelper {
 
         database.insert("MSG", null, values);
     }
-
 }

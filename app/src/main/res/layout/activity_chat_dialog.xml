@@ -1,31 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
+
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:orientation="vertical"
     android:layout_height="match_parent"
-    tools:context=".FindUser">
-
-    <EditText
-        android:id="@+id/userFrom"
-        android:layout_width="wrap_content"
-        android:layout_height="40dp"
-        android:layout_weight="15"
-        android:background="@drawable/layout_bg_gray"
-        android:ems="10"
-        android:hint="Введите имя..."
-        android:inputType="textPersonName"
-        android:textColor="@color/white"
-        android:textColorHint="@color/colorDarkLight3"
-        android:textSize="18dp" />
+    tools:context=".Chat.ChatDialog">
 
     <ScrollView
         android:id="@+id/svCont"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginTop="60dp"
-        android:layout_marginBottom="80dp">
+        android:layout_marginBottom="60dp">
 
         <LinearLayout
             android:id="@+id/llCont"
@@ -91,6 +78,7 @@
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>
+
 
 </RelativeLayout>
 

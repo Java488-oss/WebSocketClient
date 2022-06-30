@@ -17,6 +17,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
+import com.example.websocketclient.Chat.ChatNewDialog;
 import com.example.websocketclient.DB.SqLiteDatabase;
 import com.example.websocketclient.Entity.UserEntity;
 
@@ -95,8 +96,7 @@ public class MainActivity extends AppCompatActivity {
                     sqlLiteDatabase.close();
                     //////////////
 
-
-                    Intent myIntent = new Intent(MainActivity.this, FindUser.class);
+                    Intent myIntent = new Intent(MainActivity.this, ChatNewDialog.class);
                     startActivity(myIntent);
                 }
             });

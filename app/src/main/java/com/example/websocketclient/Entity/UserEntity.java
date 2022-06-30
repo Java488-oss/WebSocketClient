@@ -3,6 +3,8 @@ package com.example.websocketclient.Entity;
 
 public class UserEntity {
 
+    private int id;
+
     private String user;
 
     private String pass;
@@ -12,7 +14,21 @@ public class UserEntity {
         this.pass = pass;
     }
 
+    public UserEntity(int id, String user, String pass) {
+        this.id = id;
+        this.user = user;
+        this.pass = pass;
+    }
+
     public UserEntity() {
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
     }
 
     public String getUser() {
