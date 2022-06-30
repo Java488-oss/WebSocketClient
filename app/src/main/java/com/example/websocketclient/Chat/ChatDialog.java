@@ -4,6 +4,7 @@ import static ua.naiksoftware.stomp.provider.OkHttpConnectionProvider.TAG;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
+import androidx.core.content.ContextCompat;
 
 import android.annotation.SuppressLint;
 import android.app.ActionBar;
@@ -41,6 +42,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.concurrent.ExecutionException;
@@ -85,6 +88,22 @@ public class ChatDialog extends AppCompatActivity {
 
                 student.put("Date", jsonObject.getString("Date"));
                 student.put("state", "true");
+
+                if(jsonObject.getString("msg").equals("img$")){
+                    byte[] decodedString = Base64.decode(jsonObject.getString("msg").replace("img$", ""), Base64.DEFAULT);
+                    Bitmap decodedByte = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
+
+                    File f = new File(getRootOfExternalStorage(1), "test.jpg");
+                    f.createNewFile();
+                    ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                    decodedByte.compress(Bitmap.CompressFormat.PNG, 0 /*ignored for PNG*/, bos);
+                    byte[] bitmapdata = bos.toByteArray();
+
+                    FileOutputStream fos = new FileOutputStream(f);
+                    fos.write(bitmapdata);
+                    fos.flush();
+                    fos.close();
+                }
 
                 mStompClient.get().send("/spring-security-mvc-socket/isSend", String.valueOf(student)).subscribe();
 
@@ -329,4 +348,25 @@ public class ChatDialog extends AppCompatActivity {
         }
         return super.onOptionsItemSelected(item);
     }
+    //////////////////////////////////////
+    // Получение системных путей
+    public String getRootOfExternalStorage(int i) {
+        File[] externalStorageFiles = ContextCompat.getExternalFilesDirs(this, null);
+        switch (i){
+            case 1:
+                for (File file : externalStorageFiles) {
+                    // получение системного пути /storage/emulated/0
+                    return file.getAbsolutePath().replaceAll("/Android/data/" + getPackageName() + "/files", "");
+                }
+            case 2:
+                for (File file : externalStorageFiles) {
+                    // Получение полного пути приложения  /storage/emulated/0/Android/data/com.example.sportapp/files
+                    return file.getAbsolutePath();
+                }
+        }
+        return null;
+    }
+
+    ////////////////////////////////
+
 }

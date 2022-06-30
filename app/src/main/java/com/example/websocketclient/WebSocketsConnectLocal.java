@@ -5,9 +5,12 @@ import static android.content.ContentValues.TAG;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Base64;
 import android.util.Log;
 
 import com.example.websocketclient.DB.SqLiteDatabase;
@@ -16,6 +19,9 @@ import com.example.websocketclient.Entity.UserEntity;
 
 import org.json.JSONObject;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -65,7 +71,38 @@ public class WebSocketsConnectLocal extends AsyncTask<Void, Void, StompClient> {
                             Log.d(TAG, "Timer to server "+str[0]);
                         });
 
+                        mStompClient.topic("/user/" + getPass() + "/queue/offline").subscribe(topicMessage -> {
+                            str[0] = topicMessage.getPayload();
+                            JSONObject jsonObject = new JSONObject(str[0]);
 
+                            JSONObject student = new JSONObject();
+
+                            student.put("Date", jsonObject.getString("Date"));
+                            student.put("state", "true");
+
+                            if(jsonObject.getString("msg").equals("img$")){
+                                byte[] decodedString = Base64.decode(jsonObject.getString("msg").replace("img$", ""), Base64.DEFAULT);
+                                Bitmap decodedByte = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
+
+                                File f = new File("/storage/emulated/0", "test.jpg");
+                                f.createNewFile();
+                                ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                                decodedByte.compress(Bitmap.CompressFormat.PNG, 0 /*ignored for PNG*/, bos);
+                                byte[] bitmapdata = bos.toByteArray();
+
+                                FileOutputStream fos = new FileOutputStream(f);
+                                fos.write(bitmapdata);
+                                fos.flush();
+                                fos.close();
+                            }
+
+
+                            mStompClient.send("/spring-security-mvc-socket/isSend", String.valueOf(student)).subscribe();
+
+                            sqlLiteDatabase.open(context);
+                            sqlLiteDatabase.insertMSg(new MsgEntity(jsonObject.getString("userTO"), Integer.parseInt(jsonObject.getString("userTO")), jsonObject.getString("userFrom"), Integer.parseInt(jsonObject.getString("userFrom")), jsonObject.getString("msg"), 0, jsonObject.getString("Date")));
+                            sqlLiteDatabase.close();
+                        });
 
 //                            mStompClient.topic("/user/" + getPass() + "/queue/updates").subscribe(topicMessage -> {
 //                                str[0] = topicMessage.getPayload();
@@ -113,6 +150,7 @@ public class WebSocketsConnectLocal extends AsyncTask<Void, Void, StompClient> {
         //////////////
         return "";
     }
+
 
 
 }
