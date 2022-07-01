@@ -101,13 +101,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
 
-
-            mStompClient.get().topic("/user/13/queue/state").subscribe(topicMessage -> {
-                str[0] = topicMessage.getPayload();
-
-                Log.d(TAG, "Stomp json " + str[0]);
-            });
-
             btnSend.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {

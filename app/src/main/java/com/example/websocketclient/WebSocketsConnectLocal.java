@@ -47,8 +47,9 @@ public class WebSocketsConnectLocal extends AsyncTask<Void, Void, StompClient> {
     protected StompClient doInBackground(Void... voids) {
 
         try {
+            mStompClient = Stomp.over(Stomp.ConnectionProvider.OKHTTP, "ws://192.168.164.126:8050/room/websocket");
 //            mStompClient = Stomp.over(Stomp.ConnectionProvider.OKHTTP, "ws://192.168.164.5:8050/room/websocket");
-            mStompClient = Stomp.over(Stomp.ConnectionProvider.OKHTTP, "ws://192.168.1.9:8050/room/websocket");
+//            mStompClient = Stomp.over(Stomp.ConnectionProvider.OKHTTP, "ws://192.168.1.9:8050/room/websocket");
             mStompClient.connect();
             mStompClient.send("/spring-security-mvc-socket/GetUser", getPass()).subscribe();
             //Получение списка пользователей для чата из внешней бд
@@ -56,7 +57,6 @@ public class WebSocketsConnectLocal extends AsyncTask<Void, Void, StompClient> {
                 @Override
                 public void run() {
                     sqlLiteDatabase.open(context);
-
                     try{
 
                         mStompClient.topic("/user/" + getPass() + "/queue/state").subscribe(topicMessage -> {

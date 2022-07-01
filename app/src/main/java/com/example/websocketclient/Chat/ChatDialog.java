@@ -8,6 +8,7 @@ import androidx.core.content.ContextCompat;
 
 import android.annotation.SuppressLint;
 import android.app.ActionBar;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
@@ -48,6 +49,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.concurrent.ExecutionException;
 
+import ua.naiksoftware.stomp.Stomp;
 import ua.naiksoftware.stomp.StompClient;
 
 public class ChatDialog extends AppCompatActivity {
@@ -68,18 +70,18 @@ public class ChatDialog extends AppCompatActivity {
             Bundle arguments = getIntent().getExtras();
             userName = arguments.get("userName").toString();
             chatUserTabNum = Integer.parseInt(String.valueOf(arguments.get("chatUserTabNum")));
-            getSupportActionBar().setTitle("Чат с польз: "+userName);
+            getSupportActionBar().setTitle("Чат с польз: " + userName);
             getSupportActionBar().setHomeAsUpIndicator(R.drawable.arrow);// set drawable icon
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         } catch (Exception e) {
-            Log.d(TAG,"Error ChatDialog: "+ e.getMessage());
+            Log.d(TAG, "Error ChatDialog: " + e.getMessage());
         }
         Button btnSendMsg = findViewById(R.id.btnSendMsg);
         Button btnPlus = findViewById(R.id.btnPlus);
         AsyncTask<Void, Void, StompClient> mStompClient = new WebSocketsConnectLocal(this).execute();
         updateLL();
 
-        try{
+        try {
             mStompClient.get().topic("/user/" + getPass() + "/queue/updates").subscribe(topicMessage -> {
                 str[0] = topicMessage.getPayload();
                 JSONObject jsonObject = new JSONObject(str[0]);
@@ -89,7 +91,7 @@ public class ChatDialog extends AppCompatActivity {
                 student.put("Date", jsonObject.getString("Date"));
                 student.put("state", "true");
 
-                if(jsonObject.getString("msg").equals("img$")){
+                if (jsonObject.getString("msg").equals("img$")) {
                     byte[] decodedString = Base64.decode(jsonObject.getString("msg").replace("img$", ""), Base64.DEFAULT);
                     Bitmap decodedByte = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
 
@@ -129,8 +131,8 @@ public class ChatDialog extends AppCompatActivity {
                     EditText etSendMsg = findViewById(R.id.etSendMsg);
 
                     sqlLiteDatabase.open(ChatDialog.this);
-                    String finalUserTo=getPass();
-                    sqlLiteDatabase.insertMSg(new MsgEntity(finalUserTo, Integer.parseInt(finalUserTo), userName, chatUserTabNum, jsonObject.getString("msg"), 0,jsonObject.getString("Date")));
+                    String finalUserTo = getPass();
+                    sqlLiteDatabase.insertMSg(new MsgEntity(finalUserTo, Integer.parseInt(finalUserTo), userName, chatUserTabNum, jsonObject.getString("msg"), 0, jsonObject.getString("Date")));
                     sqlLiteDatabase.close();
 
                     updateLL();
@@ -150,8 +152,8 @@ public class ChatDialog extends AppCompatActivity {
                 Intent pickPhoto = new Intent(Intent.ACTION_PICK,
                         android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
                 pickPhoto.setType("image/*");
-                pickPhoto.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);//Выбор несколько фото (разрешение ставить более 1 чекпоинта)
-                //pickPhoto.setAction(Intent.ACTION_GET_CONTENT);//установка стандарта выбора фото из ФМ
+//                pickPhoto.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);//Выбор несколько фото (разрешение ставить более 1 чекпоинта)
+//                pickPhoto.setAction(Intent.ACTION_GET_CONTENT);//установка стандарта выбора фото из ФМ
                 startActivityForResult(Intent.createChooser(pickPhoto, "Выбор фото"), 1);//one can be replaced with any action code
             }
         });
@@ -163,45 +165,14 @@ public class ChatDialog extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
-        AsyncTask<Void, Void, StompClient> mStompClient = new WebSocketsConnectLocal(this).execute();
-
         switch (requestCode) {
             case 1:
             case 0:
                 if (resultCode == RESULT_OK) {
-                    if (data.getClipData() != null) {
-                        for (int i = 0; i < data.getClipData().getItemCount(); i++) {
-                            try{
-                                Log.d(TAG, "Image "+data.getClipData().getItemAt(i).getUri());
-                                Uri imageUri = data.getClipData().getItemAt(i).getUri();
-                                PhotoRealPath realPath = new PhotoRealPath(this);
-
-                                JSONObject jsonObject = textSend();
-                                sqlLiteDatabase.open(this);
-
-                                String path = realPath.getRealPathFromUri(this, imageUri);
-                                Bitmap bm = BitmapFactory.decodeFile(path);
-                                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                                bm.compress(Bitmap.CompressFormat.JPEG, 100, baos); // bm is the bitmap object
-                                byte[] b = baos.toByteArray();
-                                String encodedImage = Base64.encodeToString(b, Base64.DEFAULT);
-                                sqlLiteDatabase.insertMSg(new MsgEntity(getPass(), Integer.parseInt(getPass()), jsonObject.getString("userFrom"), Integer.parseInt(jsonObject.getString("userFrom")), "img@"+realPath.getRealPathFromUri(this, imageUri), 0,jsonObject.getString("Date")));
-//                                sqlLiteDatabase.insertMSg(new MsgEntity(getPass(), Integer.parseInt(getPass()), jsonObject.getString("userFrom"), Integer.parseInt(jsonObject.getString("userFrom")), "img$"+encodedImage, 0,jsonObject.getString("Date")));
-                                sqlLiteDatabase.close();
-                                updateLL();
-                                JSONObject student = new JSONObject();
-
-                                student.put("userTO", getPass());
-                                student.put("userFrom", userName);
-                                student.put("msg", "img$"+encodedImage);
-                                student.put("Date", jsonObject.getString("Date"));
-                                mStompClient.get().send("/spring-security-mvc-socket/SendMsg", String.valueOf(student)).subscribe();
-
-                                updateLL();
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
-                        }
+                    if (data.getData() != null) {
+                        Uri imageUri = data.getData();
+                        UpladImage upladImag = new UpladImage(imageUri, ChatDialog.this);
+                        upladImag.doInBackground();
                     }
 
                 }
@@ -209,13 +180,12 @@ public class ChatDialog extends AppCompatActivity {
     }
 
 
-
-    private void inboxMg(){
+    private void inboxMg() {
 
         try {
             int id = 1;
             sqlLiteDatabase.open(this);
-            String selectQuery = "SELECT * FROM MSG WhERE TabTo="+getPass() + " OR TabFrom="+getPass();
+            String selectQuery = "SELECT * FROM MSG WhERE TabTo=" + getPass() + " OR TabFrom=" + getPass();
             Cursor cursor = sqlLiteDatabase.database.rawQuery(selectQuery, null);
             cursor.getCount();
             if (cursor.moveToFirst()) {
@@ -227,24 +197,24 @@ public class ChatDialog extends AppCompatActivity {
                     LinearLayout llCont = findViewById(R.id.llCont);
 
                     LinearLayout.LayoutParams llp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
-                            ViewGroup.LayoutParams.WRAP_CONTENT,1f);
+                            ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
 
                     LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
                             LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
                     layoutParams.setMargins(15, 15, 15, 0);
 
-                    String msg =cursor.getString(5);
+                    String msg = cursor.getString(5);
 
-                    if(msg.contains("img@")){
+                    if (msg.contains("img@")) {
 //
                         ImageView tv1 = new ImageView(this);
-                        tv1.setLayoutParams(new LinearLayout.LayoutParams(400,400));
+                        tv1.setLayoutParams(new LinearLayout.LayoutParams(400, 400));
 
-                        tv1.setImageURI(Uri.parse(msg.replace("img@","")));
+                        tv1.setImageURI(Uri.parse(msg.replace("img@", "")));
                         cw.addView(tv1);
                         //////////////////////////////////////
 
-                    }else if(msg.contains("img$")) {
+                    } else if (msg.contains("img$")) {
 //
                         byte[] decodedString = Base64.decode(msg.replace("img$", ""), Base64.DEFAULT);
                         Bitmap decodedByte = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
@@ -252,7 +222,7 @@ public class ChatDialog extends AppCompatActivity {
                         tv1.setLayoutParams(new LinearLayout.LayoutParams(400, 400));
                         tv1.setImageBitmap(decodedByte);
                         cw.addView(tv1);
-                    }else {
+                    } else {
                         TextView tv = new TextView(this);
                         tv.setLayoutParams(llp);
                         tv.setTextSize(20);
@@ -263,9 +233,9 @@ public class ChatDialog extends AppCompatActivity {
 
                     }
 
-                    if(cursor.getString(2).equals(getPass())){
+                    if (cursor.getString(2).equals(getPass())) {
                         cw.setBackgroundResource(R.drawable.layout_bg_blue);
-                        layoutParams.gravity= Gravity.RIGHT;
+                        layoutParams.gravity = Gravity.RIGHT;
                     }
                     LinearLayout ll1 = new LinearLayout(this);
 
@@ -281,8 +251,7 @@ public class ChatDialog extends AppCompatActivity {
         }
     }
 
-
-    public void updateLL(){
+    public void updateLL() {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -318,8 +287,7 @@ public class ChatDialog extends AppCompatActivity {
         return null;
     }
 
-
-    private String getPass(){
+    private String getPass() {
         //////////////
         // Получаем пароль пользователя из бд
         sqlLiteDatabase.open(this);
@@ -335,10 +303,11 @@ public class ChatDialog extends AppCompatActivity {
         //////////////
         return "";
     }
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
-        switch(id){
+        switch (id) {
             case android.R.id.home:
                 Intent intent = new Intent(getApplication(), ChatNewDialog.class);
                 intent.putExtra("inputPage", "chat");
@@ -348,11 +317,12 @@ public class ChatDialog extends AppCompatActivity {
         }
         return super.onOptionsItemSelected(item);
     }
+
     //////////////////////////////////////
     // Получение системных путей
     public String getRootOfExternalStorage(int i) {
         File[] externalStorageFiles = ContextCompat.getExternalFilesDirs(this, null);
-        switch (i){
+        switch (i) {
             case 1:
                 for (File file : externalStorageFiles) {
                     // получение системного пути /storage/emulated/0
@@ -368,5 +338,59 @@ public class ChatDialog extends AppCompatActivity {
     }
 
     ////////////////////////////////
+
+    private class UpladImage extends AsyncTask<Void, Void, Void> {
+
+        private Uri imageUri;
+        private Context context;
+//        private StompClient mStompClient;
+
+
+        public UpladImage(Uri imageUri, Context context) {
+            this.imageUri = imageUri;
+            this.context = context;
+        }
+
+        @Override
+        protected Void doInBackground(Void... voids) {
+            try {
+                @SuppressLint("WrongThread") AsyncTask<Void, Void, StompClient> mStompClient = new WebSocketsConnectLocal(context).execute();
+                Log.d(TAG, "Image doInBackground");
+
+                PhotoRealPath realPath = new PhotoRealPath(context);
+
+                JSONObject jsonObject = textSend();
+                sqlLiteDatabase.open(context);
+                sqlLiteDatabase.insertMSg(new MsgEntity(getPass(), Integer.parseInt(getPass()), jsonObject.getString("userFrom"), Integer.parseInt(jsonObject.getString("userFrom")), "img@" + realPath.getRealPathFromUri(context, imageUri), 0, jsonObject.getString("Date")));
+//                                sqlLiteDatabase.insertMSg(new MsgEntity(getPass(), Integer.parseInt(getPass()), jsonObject.getString("userFrom"), Integer.parseInt(jsonObject.getString("userFrom")), "img$"+encodedImage, 0,jsonObject.getString("Date")));
+                sqlLiteDatabase.close();
+
+                String path = realPath.getRealPathFromUri(context, imageUri);
+                Bitmap bm = BitmapFactory.decodeFile(path);
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                bm.compress(Bitmap.CompressFormat.JPEG, 100, baos); // bm is the bitmap object
+                byte[] b = baos.toByteArray();
+                String encodedImage = Base64.encodeToString(b, Base64.DEFAULT);
+
+                updateLL();
+                JSONObject student = new JSONObject();
+
+                student.put("userTO", getPass());
+                student.put("userFrom", userName);
+                student.put("msg", "img$" + encodedImage);
+                student.put("Date", jsonObject.getString("Date"));
+                mStompClient.get().send("/spring-security-mvc-socket/SendMsg", String.valueOf(student)).subscribe();
+
+                mStompClient.get().disconnect();
+            } catch (JSONException e) {
+                e.printStackTrace();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            return null;
+        }
+    }
+
 
 }
