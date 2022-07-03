@@ -14,6 +14,7 @@ import android.text.Html;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -31,6 +32,18 @@ public class ChatNewDialog extends AppCompatActivity {
         getSupportActionBar().setTitle("Новый диалог");
 
         LinearLayout rContainer = (LinearLayout) findViewById(R.id.LLContCND);
+
+        Button DeletedBd = findViewById(R.id.DeletedBd);
+
+        DeletedBd.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+                sqlLiteDatabase.open(ChatNewDialog.this);
+                String selectQuery = "DELETE FROM Msg";
+                sqlLiteDatabase.database.execSQL(selectQuery);
+            }
+        });
 
 
         try {

@@ -16,6 +16,7 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import com.example.websocketclient.Chat.ChatNewDialog;
 import com.example.websocketclient.DB.SqLiteDatabase;
@@ -24,6 +25,7 @@ import com.example.websocketclient.Entity.UserEntity;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 
@@ -41,15 +43,6 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        try {
-            @SuppressLint("DiscouragedPrivateApi") Field field = CursorWindow.class.getDeclaredField("sCursorWindowSize");
-            field.setAccessible(true);
-            field.set(null, 100 * 1024 * 1024); //the 100MB is the new size
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-
         ActivityCompat.requestPermissions(this,
                 new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
                 1);
@@ -62,9 +55,13 @@ public class MainActivity extends AppCompatActivity {
         }
 
         Button btnSend = findViewById(R.id.btnSend);
-        Button btnRegister = findViewById(R.id.btnRegister);
         EditText etText = findViewById(R.id.etText);
         EditText etName = findViewById(R.id.etName);
+
+        File fileDir = new File(getRootOfExternalStorage(2)+"/Photo");
+        if(!fileDir.exists()){
+            fileDir.mkdir();
+        }
 
         AsyncTask<Void, Void, StompClient> mStompClient = new WebSocketsConnectLocal(MainActivity.this).execute();
         try {
@@ -75,7 +72,7 @@ public class MainActivity extends AppCompatActivity {
 
             String id = mStompClient.get().getTopicId("/spring-security-mvc-socket/Login");
 
-            mStompClient.get().topic("/user/" + id + "/queue/updates").subscribe(topicMessage -> {
+            mStompClient.get().topic("/user/" + id + "/queue/Login").subscribe(topicMessage -> {
                 str[0] = topicMessage.getPayload();
                 JSONObject jsonObject = new JSONObject(str[0]);
 
@@ -136,6 +133,27 @@ public class MainActivity extends AppCompatActivity {
         }
         return null;
     }
+
+    //////////////////////////////////////
+    // Получение системных путей
+    public String getRootOfExternalStorage(int i) {
+        File[] externalStorageFiles = ContextCompat.getExternalFilesDirs(this, null);
+        switch (i) {
+            case 1:
+                for (File file : externalStorageFiles) {
+                    // получение системного пути /storage/emulated/0
+                    return file.getAbsolutePath().replaceAll("/Android/data/" + getPackageName() + "/files", "");
+                }
+            case 2:
+                for (File file : externalStorageFiles) {
+                    // Получение полного пути приложения  /storage/emulated/0/Android/data/app/files
+                    return file.getAbsolutePath();
+                }
+        }
+        return null;
+    }
+
+    ////////////////////////////////
 }
 
 

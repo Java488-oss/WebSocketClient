@@ -2,22 +2,18 @@ package com.example.websocketclient.Chat;
 
 import static ua.naiksoftware.stomp.provider.OkHttpConnectionProvider.TAG;
 
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.cardview.widget.CardView;
-import androidx.core.content.ContextCompat;
-
 import android.annotation.SuppressLint;
-import android.app.ActionBar;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
+import android.database.AbstractWindowedCursor;
 import android.database.Cursor;
+import android.database.CursorWindow;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
-import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Base64;
 import android.util.Log;
@@ -31,7 +27,11 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
-import android.widget.Toolbar;
+
+import androidx.annotation.RequiresApi;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.cardview.widget.CardView;
+import androidx.core.content.ContextCompat;
 
 import com.example.websocketclient.DB.SqLiteDatabase;
 import com.example.websocketclient.Entity.MsgEntity;
@@ -44,12 +44,14 @@ import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.lang.reflect.Field;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.concurrent.ExecutionException;
 
-import ua.naiksoftware.stomp.Stomp;
 import ua.naiksoftware.stomp.StompClient;
 
 public class ChatDialog extends AppCompatActivity {
@@ -64,6 +66,15 @@ public class ChatDialog extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_chat_dialog);
+
+        try {
+            @SuppressLint("DiscouragedPrivateApi") Field field = CursorWindow.class.getDeclaredField("sCursorWindowSize");
+            field.setAccessible(true);
+            field.set(null, 100 * 1024 * 1024); //the 100MB is the new size
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
 
         ///Устанавливаем title для активити и получаем данные для чата
         try {
@@ -90,12 +101,14 @@ public class ChatDialog extends AppCompatActivity {
 
                 student.put("Date", jsonObject.getString("Date"));
                 student.put("state", "true");
+                if (jsonObject.getString("msg").contains("img$")) {
 
-                if (jsonObject.getString("msg").equals("img$")) {
+                    String filePathDirPhoto = getRootOfExternalStorage(2).replace("files", "")+"Photo";
+
                     byte[] decodedString = Base64.decode(jsonObject.getString("msg").replace("img$", ""), Base64.DEFAULT);
                     Bitmap decodedByte = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
 
-                    File f = new File(getRootOfExternalStorage(1), "test.jpg");
+                    File f = new File(getRootOfExternalStorage(2)+"/Photo/"+"test1.jpg");
                     f.createNewFile();
                     ByteArrayOutputStream bos = new ByteArrayOutputStream();
                     decodedByte.compress(Bitmap.CompressFormat.PNG, 0 /*ignored for PNG*/, bos);
@@ -165,21 +178,18 @@ public class ChatDialog extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
-        switch (requestCode) {
-            case 1:
-            case 0:
-                if (resultCode == RESULT_OK) {
-                    if (data.getData() != null) {
-                        Uri imageUri = data.getData();
-                        UpladImage upladImag = new UpladImage(imageUri, ChatDialog.this);
-                        upladImag.doInBackground();
-                    }
+        if (resultCode == RESULT_OK) {
+            if (data.getData() != null) {
+                Uri imageUri = data.getData();
+                UpladImage upladImag = new UpladImage(imageUri, ChatDialog.this);
+                upladImag.doInBackground();
+            }
 
-                }
         }
     }
 
 
+    @RequiresApi(api = Build.VERSION_CODES.P)
     private void inboxMg() {
 
         try {
@@ -187,8 +197,13 @@ public class ChatDialog extends AppCompatActivity {
             sqlLiteDatabase.open(this);
             String selectQuery = "SELECT * FROM MSG WhERE TabTo=" + getPass() + " OR TabFrom=" + getPass();
             Cursor cursor = sqlLiteDatabase.database.rawQuery(selectQuery, null);
+            CursorWindow cursorWindow = new CursorWindow("test", 104857600);
+            AbstractWindowedCursor abstractWindowedCursor = (AbstractWindowedCursor) cursor;
+
+            abstractWindowedCursor.setWindow(cursorWindow);
+
             cursor.getCount();
-            if (cursor.moveToFirst()) {
+            if (abstractWindowedCursor.moveToFirst()) {
                 do {
                     final CardView cw = new CardView(this);
                     cw.setId(id);
@@ -202,22 +217,21 @@ public class ChatDialog extends AppCompatActivity {
                     LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
                             LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
                     layoutParams.setMargins(15, 15, 15, 0);
+                    cw.setBackgroundResource(R.drawable.layout_bg_gray);
 
                     String msg = cursor.getString(5);
-
                     if (msg.contains("img@")) {
 //
                         ImageView tv1 = new ImageView(this);
                         tv1.setLayoutParams(new LinearLayout.LayoutParams(400, 400));
-
                         tv1.setImageURI(Uri.parse(msg.replace("img@", "")));
                         cw.addView(tv1);
                         //////////////////////////////////////
 
                     } else if (msg.contains("img$")) {
-//
                         byte[] decodedString = Base64.decode(msg.replace("img$", ""), Base64.DEFAULT);
                         Bitmap decodedByte = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
+
                         ImageView tv1 = new ImageView(this);
                         tv1.setLayoutParams(new LinearLayout.LayoutParams(400, 400));
                         tv1.setImageBitmap(decodedByte);
@@ -228,10 +242,9 @@ public class ChatDialog extends AppCompatActivity {
                         tv.setTextSize(20);
                         tv.setTextColor(Color.parseColor("#E1E2E5"));
                         tv.setText(cursor.getString(5));
-                        cw.setBackgroundResource(R.drawable.layout_bg_gray);
                         cw.addView(tv);
-
                     }
+
 
                     if (cursor.getString(2).equals(getPass())) {
                         cw.setBackgroundResource(R.drawable.layout_bg_blue);
@@ -243,16 +256,17 @@ public class ChatDialog extends AppCompatActivity {
 
                     llCont.addView(ll1, layoutParams);
 
-                } while (cursor.moveToNext());
+                } while (abstractWindowedCursor.moveToNext());
             }
             sqlLiteDatabase.close();
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.d(TAG, "IMG ERROR: "+e.getMessage());
         }
     }
 
     public void updateLL() {
         runOnUiThread(new Runnable() {
+            @RequiresApi(api = Build.VERSION_CODES.P)
             @Override
             public void run() {
                 LinearLayout linearLayout = findViewById(R.id.llCont);
@@ -330,7 +344,7 @@ public class ChatDialog extends AppCompatActivity {
                 }
             case 2:
                 for (File file : externalStorageFiles) {
-                    // Получение полного пути приложения  /storage/emulated/0/Android/data/com.example.sportapp/files
+                    // Получение полного пути приложения  /storage/emulated/0/Android/data/app/files
                     return file.getAbsolutePath();
                 }
         }
@@ -381,7 +395,7 @@ public class ChatDialog extends AppCompatActivity {
                 student.put("Date", jsonObject.getString("Date"));
                 mStompClient.get().send("/spring-security-mvc-socket/SendMsg", String.valueOf(student)).subscribe();
 
-                mStompClient.get().disconnect();
+//                mStompClient.get().disconnect();
             } catch (JSONException e) {
                 e.printStackTrace();
             } catch (Exception e) {
