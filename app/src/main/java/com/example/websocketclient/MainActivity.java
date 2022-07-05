@@ -95,6 +95,7 @@ public class MainActivity extends AppCompatActivity {
 
                     Intent myIntent = new Intent(MainActivity.this, ChatNewDialog.class);
                     startActivity(myIntent);
+                    mStompClient.get().disconnect();
                 }
             });
 
@@ -111,9 +112,12 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
 
+
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+
 
         ///////////////////////////////////////////////////////////////////
     }

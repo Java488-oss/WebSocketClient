@@ -44,9 +44,7 @@ import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.lang.reflect.Field;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -59,6 +57,7 @@ public class ChatDialog extends AppCompatActivity {
     private int chatUserTabNum;
     private SqLiteDatabase sqlLiteDatabase = new SqLiteDatabase(this);
     private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+
     private final String[] str = new String[1];
 
     @SuppressLint("CheckResult")
@@ -102,30 +101,36 @@ public class ChatDialog extends AppCompatActivity {
                 student.put("Date", jsonObject.getString("Date"));
                 student.put("state", "true");
                 if (jsonObject.getString("msg").contains("img$")) {
-
-                    String filePathDirPhoto = getRootOfExternalStorage(2).replace("files", "")+"Photo";
+                    sqlLiteDatabase.open(this);
 
                     byte[] decodedString = Base64.decode(jsonObject.getString("msg").replace("img$", ""), Base64.DEFAULT);
                     Bitmap decodedByte = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
 
-                    File f = new File(getRootOfExternalStorage(2)+"/Photo/"+"test1.jpg");
+                    String namePhoto = "img_"+jsonObject.getString("Date").replace(" ", "_");
+
+                    File f = new File(getRootOfExternalStorage(2)+"/Photo/"+namePhoto+".png");
                     f.createNewFile();
                     ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                    decodedByte.compress(Bitmap.CompressFormat.PNG, 0 /*ignored for PNG*/, bos);
+                    decodedByte.compress(Bitmap.CompressFormat.WEBP, 0 /*ignored for PNG*/, bos);
                     byte[] bitmapdata = bos.toByteArray();
 
                     FileOutputStream fos = new FileOutputStream(f);
                     fos.write(bitmapdata);
+
                     fos.flush();
                     fos.close();
+                    sqlLiteDatabase.insertMSg(new MsgEntity(jsonObject.getString("userTO"), Integer.parseInt(jsonObject.getString("userTO")), jsonObject.getString("userFrom"), Integer.parseInt(jsonObject.getString("userFrom")), "img@"+f.getAbsolutePath(), 0, jsonObject.getString("Date")));
+                }else {
+
+                    sqlLiteDatabase.insertMSg(new MsgEntity(jsonObject.getString("userTO"), Integer.parseInt(jsonObject.getString("userTO")), jsonObject.getString("userFrom"), Integer.parseInt(jsonObject.getString("userFrom")), jsonObject.getString("msg"), 0, jsonObject.getString("Date")));
                 }
 
                 mStompClient.get().send("/spring-security-mvc-socket/isSend", String.valueOf(student)).subscribe();
 
-                sqlLiteDatabase.open(this);
-                sqlLiteDatabase.insertMSg(new MsgEntity(jsonObject.getString("userTO"), Integer.parseInt(jsonObject.getString("userTO")), jsonObject.getString("userFrom"), Integer.parseInt(jsonObject.getString("userFrom")), jsonObject.getString("msg"), 0, jsonObject.getString("Date")));
+
                 sqlLiteDatabase.close();
                 updateLL();
+//                mStompClient.get().disconnect();
             });
         } catch (ExecutionException e) {
             e.printStackTrace();
@@ -222,21 +227,29 @@ public class ChatDialog extends AppCompatActivity {
                     String msg = cursor.getString(5);
                     if (msg.contains("img@")) {
 //
-                        ImageView tv1 = new ImageView(this);
-                        tv1.setLayoutParams(new LinearLayout.LayoutParams(400, 400));
-                        tv1.setImageURI(Uri.parse(msg.replace("img@", "")));
-                        cw.addView(tv1);
+                        ImageView imageView = new ImageView(this);
+                        imageView.setLayoutParams(new LinearLayout.LayoutParams(400, 400));
+                        imageView.setImageURI(Uri.parse(msg.replace("img@", "")));
+                        cw.addView(imageView);
+
+                        Log.d(TAG,"IMG0: "+Uri.parse(new File(msg.replace("img@", "")).toString()));
+                        Log.d(TAG,"IMG0: "+msg);
+
+                        imageView.setOnClickListener(new View.OnClickListener() {
+                            @SuppressLint("IntentReset")
+                            @Override
+                            public void onClick(View v) {
+                                Intent intent = new Intent();
+                                intent.setAction (Intent.ACTION_VIEW);
+                                intent.setType("image/png");
+                                intent.setData(Uri.fromFile(new File(msg.replace("img@/", ""))));
+                                startActivity (intent);
+                            }
+
+                        });
                         //////////////////////////////////////
 
-                    } else if (msg.contains("img$")) {
-                        byte[] decodedString = Base64.decode(msg.replace("img$", ""), Base64.DEFAULT);
-                        Bitmap decodedByte = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
-
-                        ImageView tv1 = new ImageView(this);
-                        tv1.setLayoutParams(new LinearLayout.LayoutParams(400, 400));
-                        tv1.setImageBitmap(decodedByte);
-                        cw.addView(tv1);
-                    } else {
+                    }else {
                         TextView tv = new TextView(this);
                         tv.setLayoutParams(llp);
                         tv.setTextSize(20);
@@ -357,7 +370,6 @@ public class ChatDialog extends AppCompatActivity {
 
         private Uri imageUri;
         private Context context;
-//        private StompClient mStompClient;
 
 
         public UpladImage(Uri imageUri, Context context) {
@@ -382,7 +394,7 @@ public class ChatDialog extends AppCompatActivity {
                 String path = realPath.getRealPathFromUri(context, imageUri);
                 Bitmap bm = BitmapFactory.decodeFile(path);
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                bm.compress(Bitmap.CompressFormat.JPEG, 100, baos); // bm is the bitmap object
+                bm.compress(Bitmap.CompressFormat.JPEG, 70, baos); // bm is the bitmap object
                 byte[] b = baos.toByteArray();
                 String encodedImage = Base64.encodeToString(b, Base64.DEFAULT);
 
@@ -395,7 +407,7 @@ public class ChatDialog extends AppCompatActivity {
                 student.put("Date", jsonObject.getString("Date"));
                 mStompClient.get().send("/spring-security-mvc-socket/SendMsg", String.valueOf(student)).subscribe();
 
-//                mStompClient.get().disconnect();
+                mStompClient.get().disconnect();
             } catch (JSONException e) {
                 e.printStackTrace();
             } catch (Exception e) {

@@ -45,12 +45,6 @@
             android:name=".Chat.ChatNewDialog"
             android:exported="false" />
         <activity
-            android:name="com.example.chat.websocketclient.ChatNewDialog"
-            android:exported="false" />
-        <activity
-            android:name=".FindUser"
-            android:exported="false" />
-        <activity
             android:name=".MainActivity"
             android:exported="true">
             <intent-filter>
